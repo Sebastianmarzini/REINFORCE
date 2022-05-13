@@ -116,6 +116,7 @@ for(group in 1:nrow(wgroup)){
   ele_data[[wgroup$Var1[group]]] <- sample
 }
 
+prova
 
 
 
