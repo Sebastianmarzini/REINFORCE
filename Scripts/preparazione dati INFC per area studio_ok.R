@@ -43,6 +43,7 @@ infc <- infc %>% select(-c(WGRU_CODE.x, WGRU_CODE.y, LAT_WGS84, LON_WGS84))
 
 #write.csv(infc, paste0("INFC data South Tyrol/dati utili INFC alto adige_", Sys.Date(), ".csv"), row.names = FALSE)
 
+
 # 2 Creazione di classi per elevazione, slope e aspect ----
 
 #data <- read.csv("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
@@ -63,13 +64,16 @@ data <- data[, c(1, 2, 3, 11, 4, 5, 6, 7, 8, 9, 10, 18, 12, 13, 14, 15, 16, 17)]
 
 #write.csv(data, paste0("C:/Users/seba_/Documents/Seba/Progetti_gitLab/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_", Sys.Date(), "_.csv"))
 
+
 # 3 Campionamento dei valori per gli attributi infc da assegnare alle varie classi ----
 data <- read.csv("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
 data <- data %>% select(-X)
 
 wgroup <- as.data.frame(table(data$WGRU_CODE))
 wgroup$Var1 <- as.character(wgroup$Var1)
+
 ele_data <- list()
+
 # primo ciclo per ogni categoria forestale presente nel dataframe iniziale
 for(group in 1:nrow(wgroup)){
   df <- data %>% filter(WGRU_CODE == wgroup$Var1[group])
@@ -105,11 +109,12 @@ for(group in 1:nrow(wgroup)){
     # per ogni classe altitudinale
     sample[[colnames(df[c])]] <- values
   }
-  # calcolo il valore medio per ogni classe
-  sample <- lapply(sample, sapply, median, na.rm = TRUE)
+  # per ogni classe altitudinale prendo il 75esimo peercentile
+  sample <- lapply(sample, sapply, quantile, prob = (0.75), na.rm = TRUE)
+  # creo una lista finale contenente una lista per ogni categoria forestale con dentro i valori delle variabili infc per ogni classe
+  # altitudinale
   ele_data[[wgroup$Var1[group]]] <- sample
 }
-
 
 
 
