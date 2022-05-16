@@ -25,6 +25,7 @@ library(RColorBrewer)
 library(colorspace)
 library(RSQLite)
 library(tidyverse)
+library(stringr)
 
 #write.csv(soil_data, "soil_data_correct.csv")
 #ru_raster <- raster("D:/Projects/RESIN/Stubaital/GISData/iLand_Input/raster_waldtypen.asc")
@@ -41,9 +42,9 @@ library(tidyverse)
 
 ###import DEM, previously calculated in arcmap
 
-wd <- setwd("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE")
-dem_stack <- stack("/VAL_VENOSTA/GIS/stackvenosta_100m.tif") 
-names(dem_stack) <- c("elevation","waldtyp", "slope", "aspect", "depth", "sand", "silt", "clay")
+#wd <- setwd("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE")
+dem_stack <- stack("stackVenosta_100m.tif") 
+names(dem_stack) <- c("elevation","waldtyp", "slope", "aspect", "depth", "sand", "silt", "clay", "bodenlands")
 dem_stack
 dem_stack_point <- rasterToPoints(dem_stack)
 dem_stack_df <- as.data.frame(dem_stack_point)
@@ -52,20 +53,20 @@ dem_stack_df_red["waldtyp"][dem_stack_df_red["waldtyp"] == 128 | is.na(dem_stack
 dem_stack_df_red$depth = dem_stack_df_red$depth*1000
 plot(rasterFromXYZ(dem_stack_df_red[,c(1,2,5)])) ##test plot
 
-fortypes <- read.csv("/VAL_VENOSTA/GIS/tipiforestali_venosta_raster10m.csv")
+fortypes <- read.csv("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS/tipiforestali_venosta_raster10m.csv")
 
 ST_raster <- merge(dem_stack_df_red, fortypes, by = 'waldtyp')
 ST_raster <- rename(ST_raster, "tipi_for" = "cod")
 ST_raster <- ST_raster%>% select(-waldtyp)
 
 #creation of the dataset of the bodenlands with their codes
-bl <- projectRaster(raster("/VAL_VENOSTA/GIS/bodenland_100m.tif"), dem_stack)
+bl <- projectRaster(raster("VAL_VENOSTA/GIS/bodenland_100m.tif"), dem_stack)
 b <- rasterToPoints(bl)
 b <- as.data.frame(b)
 b <- b %>% rename(bcode = bodenland_100m)
 b$bcode <- round(b$bcode, digits = 0)
 
-b1 <- read.csv("/VAL_VENOSTA/GIS/bodenlands_codes.csv")
+b1 <- read.csv("VAL_VENOSTA/GIS/bodenlands_codes.csv")
 b1 <- b1 %>% rename(bcode = Boden_code)
 bjoint <- left_join(b, b1)
 plot(rasterFromXYZ(bjoint[,c(1,2,3)])) ##test plot
@@ -74,6 +75,7 @@ bjoint <- bjoint %>% select(-bcode)
 sraster_joint <- left_join(ST_raster, bjoint)
 
 ST_raster <- sraster_joint
+ST_raster <- ST_raster %>% select(-bodenlands)
 summary(ST_raster)
 
 
@@ -93,7 +95,13 @@ ST_raster$asp_cat <- ifelse(ST_raster$aspect %in% c(0:22), 1, ifelse(ST_raster$a
 
 head(ST_raster)
 
-soil_data <- read.table("C:/Users/semarzini/Desktop/REINFORCE/Stubai/Dati Katharina Stubai/Stubai_soil_0802.csv", sep=",",header=TRUE)
+for(t in 1:nrow(ST_raster)){
+  ST_raster$cat_for[t] <- str_extract(ST_raster$tipi_for[t], "[A-z]+" )
+}
+
+write.csv(ST_raster, "C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/rasterStack_venosta.csv")
+
+soil_data <- read.table("C:/Users/semarzini/Desktop/Sebastian/REINFORCE/Stubai/Dati Katharina Stubai/Stubai_soil_0802.csv", sep=",",header=TRUE)
 #str(soil_data)
 
 #2: estimating sand/silt/clay from "Waldtypisierung", collected by L. Oberhofer -----------------------------------------------------
@@ -201,7 +209,7 @@ soil_data <- read.table("C:/Users/semarzini/Desktop/REINFORCE/Stubai/Dati Kathar
 
 #load soil data from AFI
 
-AFI_databank <- read.table("C:/Users/semarzini/Desktop/REINFORCE/Stubai/Dati Katharina Stubai/AFI_soil_data_simple.csv", sep=";", header=TRUE)
+AFI_databank <- read.table("C:/Users/semarzini/Desktop/Sebastian/REINFORCE/Stubai/Dati Katharina Stubai/AFI_soil_data_simple.csv", sep=";", header=TRUE)
 AFI_databank_filterd <- AFI_databank %>% filter(WUGEB==1.2 | WUGEB==1.1 | WUGEB==3.3 ) #take only plots from the relevant zone
 
 #make subgroups of soils according to forest type by selecting only the soil types mentioned in the description
@@ -344,7 +352,7 @@ sampleWithoutSurprises <- function(x) {
   }
 }
 
-soil_qp <- data.frame()
+soil_q <- data.frame()
 soil_all <- data.frame()
 
 

@@ -67,7 +67,7 @@ data <- data[, c(1, 2, 3, 11, 4, 5, 6, 7, 8, 9, 10, 18, 12, 13, 14, 15, 16, 17)]
 
 
 # 3 Campionamento dei valori per gli attributi infc da assegnare alle varie classi ----
-data <- read.csv("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
+data <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
 data <- data %>% select(-X)
 
 wgroup <- as.data.frame(table(data$WGRU_CODE))
@@ -133,6 +133,126 @@ for(e in 1:12){
   infc_df <- rbind(infc_df, ds)
 }
 
+
+
+
+## prova soil sampling 16/05/2022
+
+STarea <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/soil_venosta_2022-04-12.csv")
+
+for(t in 1:nrow(STarea)){
+  STarea$cat_for[t] <- str_extract(STarea$tipi_for[t], "[A-z]+" )
+}
+
+STarea <- STarea %>% select(c(1:15,68))
+STarea$xy <- paste(STarea$x, STarea$y, sep="")
+STarea$ele_cat <- ifelse(STarea$elevation<=300, 1, ifelse(STarea$elevation %in% c(300:599), 2, ifelse(STarea$elevation %in% c(600:899), 3, ifelse(STarea$elevation %in% c(900:1199), 4, ifelse(STarea$elevation %in% c(1200:1499), 5, ifelse(STarea$elevation %in% c(1500:1799), 6, ifelse(STarea$elevation %in% c(1800:1999), 7, ifelse(STarea$elevation > 1999, 8, 9))))))))
+
+
+INFC_Bu <- filter(data, WGRU_CODE == "Bu")
+INFC_Ei <- filter(data, WGRU_CODE == "Ei")
+INFC_EK <- filter(data, WGRU_CODE == "EK")
+INFC_Fi <- filter(data, WGRU_CODE == "Fi")
+INFC_Fs <- filter(data, WGRU_CODE == "Fs")
+INFC_FT <- filter(data, WGRU_CODE == "FT")
+INFC_Ftb <- filter(data, WGRU_CODE == "Ftb")
+INFC_Ki <- filter(data, WGRU_CODE == "Ki")
+INFC_La <- filter(data, WGRU_CODE == "La")
+INFC_Lh <- filter(data, WGRU_CODE == "Lh")
+INFC_MH <- filter(data, WGRU_CODE == "MH")
+INFC_Zi <- filter(data, WGRU_CODE == "Zi")
+INFC_AE <- filter(data, WGRU_CODE == "AE")
+INFC_AT <- filter(data, WGRU_CODE == "AT")
+INFC_AS <- filter(data, WGRU_CODE == "AS")
+INFC_Ge <- filter(data, WGRU_CODE == "Ge")
+INFC_nf <- filter(data, WGRU_CODE == "nf")
+INFC_Lat <- filter(data, WGRU_CODE == "Lat")
+
+
+#STarea_filter <- STarea %>% filter(tipi_for=="nf")
+
+
+###selecting matching sample plots according to aspect, slope and elevation, based on Code by Dominik
+
+select.soil <- function (soil_database_select, elevation, slope, aspect) {
+  d <- soil_database_select$idpunto[soil_database_select$elevation==elevation &  soil_database_select$slope==slope & soil_database_select$aspect==aspect]
+  if (length(d)==0) {
+    print("removing aspect")
+    d <- soil_database_select$idpunto[soil_database_select$elevation==elevation & soil_database_select$slope==slope]}
+  else{(print(d))}
+  
+  if (length(d)==0) {
+    print("removing slope")
+    d <- soil_database_select$idpunto[soil_database_select$elevation==elevation]}
+  else{(print(d))}
+  
+  if (length(d)==0) {
+    print("removing elevation")
+    d <- soil_database_select$idpunto}
+  return(d)
+}
+
+sampleWithoutSurprises <- function(x) {
+  if (length(x)<=1) {
+    return(x)
+  } else {
+    return(sample(x,1))
+  }
+}
+
+soil_q <- data.frame()
+soil_all <- data.frame()
+
+
+for (i in (unique(STarea$cat_for))){
+  soil_sele <- get(paste("INFC_",i, sep=""))
+  point_sele <- STarea[STarea$cat_for==i,]
+  
+  
+  for (q in (c(1:nrow(point_sele)))) {
+    aspect <- point_sele[q,"asp_cat"]
+    elevation <- point_sele[q,"ele_cat"]
+    slope <- point_sele[q,"slope_cat"]
+    #xyc <- point_sele[q, "xy"]
+    
+    g <- select.soil(soil_sele, elevation, slope, aspect)
+    
+    ID_q <- sampleWithoutSurprises(g)
+    
+    soil_q <- soil_sele[soil_sele$idpunto==ID_q,]
+    
+    if(nrow(soil_q) < 1){
+      soil_q[+1,] <- NA
+      soil_q$WGRU_CODE <- i
+      #soil_q$xy <- xyc
+      soil_all <- rbind(soil_all, soil_q)
+    } else {
+      soil_q$WGRU_CODE <- i
+      #soil_q$xy <- xyc
+      soil_all <- rbind(soil_all, soil_q) 
+    }
+  }
+}
+
+
+head(soil_all)
+unique(soil_all$WGRU_CODE)
+nrow(soil_all[soil_all$WGRU_CODE=="Fs",])
+
+soil_all <- soil_all[!duplicated(soil_all), ]
+soil_all <- soil_all %>% rename(cat_for = WGRU_CODE)
+
+soil_raster <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"), all=TRUE)
+
+for(i in 1:nrow(soil_raster)){
+  if(soil_raster[i,]$depth == 0){
+    soil_raster[i,][,16:66] <- 0
+  }
+}
+
+soil_raster <- soil_raster %>% rename(tipi_for = tipi_for.x)
+
+write.csv(soil_raster, paste0("VAL_VENOSTA/soil_venosta_", Sys.Date(), ".csv"), row.names = FALSE )
 
 
   

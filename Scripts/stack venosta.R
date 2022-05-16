@@ -21,7 +21,7 @@ depth <- raster("depth_100m.tif")
 sand <- raster("sand_100m.tif")
 silt <- raster("silt_100m.tif")
 clay <- raster("clay_100m.tif")
-bodenlands <- raster("bodenlands_100m.tif")
+bodenlands <- raster("bodenland_100m.tif")
 
 depth <- projectRaster(depth, dem)
 sand <- projectRaster(sand, dem)
