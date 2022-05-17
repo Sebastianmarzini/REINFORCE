@@ -20,10 +20,10 @@ library(tibble)
 # 1 Sistemazione dati INFC ----
 
 # csv con dati relativi all'area di studio
-soil_raster <- read.csv("C:/Users/seba_/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/soil_venosta_2022-04-12.csv")
+#soil_raster <- read.csv("C:/Users/seba_/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/soil_venosta_2022-04-12.csv")
 
 # dati INFC necromassa fine e suolo con coordinate giuste
-nfs <- read.csv("C:/Users/seba_/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/ITALY_NFI_infc05/Punti_INFC/punti infc alto adige/infc necromassa e tipi forestali_altoadige.csv", fileEncoding="UTF-8-BOM")
+nfs <- read.csv("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/ITALY_NFI_infc05/Punti_INFC/punti infc alto adige/infc necromassa e tipi forestali_altoadige.csv", fileEncoding="UTF-8-BOM")
 
 # tolgo boschi igrofili e colonne che non servono
 nfs <- nfs %>% filter(WTYP_CODE!="AT") %>% 
@@ -51,7 +51,12 @@ infc <- infc %>% select(-c(WGRU_CODE.x, WGRU_CODE.y, LAT_WGS84, LON_WGS84))
 
 # classi altitudinali come quelle nel file di deadwood di Katarina per lo Stubai pi? altre classi sopra i 1500 m: 
 data$elevation <- round(data$elevation)
-data$ele_cat <- ifelse(data$elevation<=300, 1, ifelse(data$elevation %in% c(300:599), 2, ifelse(data$elevation %in% c(600:899), 3, ifelse(data$elevation %in% c(900:1199), 4, ifelse(data$elevation %in% c(1200:1499), 5, ifelse(data$elevation %in% c(1500:1799), 6, ifelse(data$elevation %in% c(1800:1999), 7, ifelse(data$elevation > 1999, 8, 9))))))))
+data$ele_cat <- ifelse(data$elevation<300,1, 
+                       ifelse(data$elevation %in% c(300:599), 2, 
+                              ifelse(data$elevation %in% c(600:899),3,
+                                     ifelse(data$elevation %in% c(900:1199),4, 
+                                            ifelse(data$elevation %in% c(1200:1499),5,
+                                                   ifelse(data$elevation>1499,6,NA))))))
 # classi di pendenza (come quelle nello script di soil data di Katarina utilizzate per lo Stubai)
 data$slope <- round(data$slope)
 data$slope_cat <- ifelse(data$slope<=5, 00, ifelse(data$slope %in% c(6:10), 01, ifelse(data$slope %in% c(11:20), 02, ifelse(data$slope %in% c(21:30), 03, ifelse(data$slope %in% c(31:40), 04, ifelse(data$slope %in% c(41:50), 05, ifelse(data$slope %in% c(51:60), 06, ifelse(data$slope %in% c(61:70), 07, ifelse(data$slope %in% c(71:80), 08, ifelse(data$slope %in% c(81:90), 09, ifelse(data$slope %in% c(91:100), 10, ifelse(data$slope %in% c(101:110), 11,12))))))))))))
@@ -144,9 +149,15 @@ for(t in 1:nrow(STarea)){
   STarea$cat_for[t] <- str_extract(STarea$tipi_for[t], "[A-z]+" )
 }
 
+STarea$elevation <- round_any(STarea$elevation, 100)
 STarea <- STarea %>% select(c(1:15,68))
 STarea$xy <- paste(STarea$x, STarea$y, sep="")
-STarea$ele_cat <- ifelse(STarea$elevation<=300, 1, ifelse(STarea$elevation %in% c(300:599), 2, ifelse(STarea$elevation %in% c(600:899), 3, ifelse(STarea$elevation %in% c(900:1199), 4, ifelse(STarea$elevation %in% c(1200:1499), 5, ifelse(STarea$elevation %in% c(1500:1799), 6, ifelse(STarea$elevation %in% c(1800:1999), 7, ifelse(STarea$elevation > 1999, 8, 9))))))))
+STarea$ele_cat <- ifelse(STarea$elevation<300,1, 
+                         ifelse(STarea$elevation %in% c(300:599), 2, 
+                                ifelse(STarea$elevation %in% c(600:899),3,
+                                       ifelse(STarea$elevation %in% c(900:1199),4, 
+                                              ifelse(STarea$elevation %in% c(1200:1499),5,
+                                                     ifelse(STarea$elevation>1499,6, 0))))))
 
 
 INFC_Bu <- filter(data, WGRU_CODE == "Bu")
@@ -161,12 +172,12 @@ INFC_La <- filter(data, WGRU_CODE == "La")
 INFC_Lh <- filter(data, WGRU_CODE == "Lh")
 INFC_MH <- filter(data, WGRU_CODE == "MH")
 INFC_Zi <- filter(data, WGRU_CODE == "Zi")
-INFC_AE <- filter(data, WGRU_CODE == "AE")
-INFC_AT <- filter(data, WGRU_CODE == "AT")
-INFC_AS <- filter(data, WGRU_CODE == "AS")
-INFC_Ge <- filter(data, WGRU_CODE == "Ge")
-INFC_nf <- filter(data, WGRU_CODE == "nf")
-INFC_Lat <- filter(data, WGRU_CODE == "Lat")
+#INFC_AE <- filter(data, WGRU_CODE == "AE")
+#INFC_AT <- filter(data, WGRU_CODE == "AT")
+#INFC_AS <- filter(data, WGRU_CODE == "AS")
+#INFC_Ge <- filter(data, WGRU_CODE == "Ge")
+#INFC_nf <- filter(data, WGRU_CODE == "nf")
+#INFC_Lat <- filter(data, WGRU_CODE == "Lat")
 
 
 #STarea_filter <- STarea %>% filter(tipi_for=="nf")
@@ -205,44 +216,51 @@ soil_all <- data.frame()
 
 
 for (i in (unique(STarea$cat_for))){
-  soil_sele <- get(paste("INFC_",i, sep=""))
-  point_sele <- STarea[STarea$cat_for==i,]
   
-  
-  for (q in (c(1:nrow(point_sele)))) {
-    aspect <- point_sele[q,"asp_cat"]
-    elevation <- point_sele[q,"ele_cat"]
-    slope <- point_sele[q,"slope_cat"]
-    #xyc <- point_sele[q, "xy"]
+  if(exists(paste("INFC_", i, sep="")) == FALSE){
+    next
+  } else {
+    soil_sele <- get(paste("INFC_",i, sep=""))
+    point_sele <- STarea[STarea$cat_for==i,]
     
-    g <- select.soil(soil_sele, elevation, slope, aspect)
     
-    ID_q <- sampleWithoutSurprises(g)
-    
-    soil_q <- soil_sele[soil_sele$idpunto==ID_q,]
-    
-    if(nrow(soil_q) < 1){
-      soil_q[+1,] <- NA
-      soil_q$WGRU_CODE <- i
-      #soil_q$xy <- xyc
-      soil_all <- rbind(soil_all, soil_q)
-    } else {
-      soil_q$WGRU_CODE <- i
-      #soil_q$xy <- xyc
-      soil_all <- rbind(soil_all, soil_q) 
+    for (q in (c(1:nrow(point_sele)))) {
+      aspect <- point_sele[q,"asp_cat"]
+      elevation <- point_sele[q,"ele_cat"]
+      slope <- point_sele[q,"slope_cat"]
+      #xyc <- point_sele[q, "xy"]
+      
+      g <- select.soil(soil_sele, elevation, slope, aspect)
+      
+      ID_q <- sampleWithoutSurprises(g)
+      
+      soil_q <- soil_sele[soil_sele$idpunto==ID_q,]
+      
+      if(nrow(soil_q) < 1){
+        soil_q[+1,] <- NA
+        soil_q$WGRU_CODE <- i
+        #soil_q$xy <- xyc
+        soil_all <- rbind(soil_all, soil_q)
+      } else {
+        soil_q$WGRU_CODE <- i
+        #soil_q$xy <- xyc
+        soil_all <- rbind(soil_all, soil_q) 
+      }
     }
   }
 }
 
-
-head(soil_all)
-unique(soil_all$WGRU_CODE)
-nrow(soil_all[soil_all$WGRU_CODE=="Fs",])
-
-soil_all <- soil_all[!duplicated(soil_all), ]
+soil_all <- soil_all %>% select(c(4:12, 16:18))
+soil_all <- soil_all %>% 
+  dplyr::group_by(WGRU_CODE, ele_cat, slope_cat, asp_cat) %>% 
+  summarise_all(.funs = mean, na.rm=TRUE)
 soil_all <- soil_all %>% rename(cat_for = WGRU_CODE)
 
-soil_raster <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"), all=TRUE)
+infc_raster <- left_join(STarea, soil_all, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"))
+
+prova <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat"), all.x =TRUE)
+
+soil_raster <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat"), all=TRUE)
 
 for(i in 1:nrow(soil_raster)){
   if(soil_raster[i,]$depth == 0){
