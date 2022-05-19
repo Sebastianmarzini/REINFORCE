@@ -19,37 +19,35 @@ library(tibble)
 
 # 1 Sistemazione dati INFC ----
 
-# csv con dati relativi all'area di studio
-#soil_raster <- read.csv("C:/Users/seba_/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/soil_venosta_2022-04-12.csv")
-
 # dati INFC necromassa fine e suolo con coordinate giuste
 nfs <- read.csv("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/ITALY_NFI_infc05/Punti_INFC/punti infc alto adige/infc necromassa e tipi forestali_altoadige.csv", fileEncoding="UTF-8-BOM")
-
 # tolgo boschi igrofili e colonne che non servono
 nfs <- nfs %>% filter(WTYP_CODE!="AT") %>% 
   dplyr::select(-c(Wnef_ha, cffddesc1, COD_FOR))
-
 # dati INFC necromassa popolamento
-pn <- read.csv("C:/Users/seba_/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/ITALY_NFI_infc05/Punti_INFC/punti infc alto adige/infc popolamento e necromassa alto adige e tipi forestali con coordinate_2022_05_05.csv", fileEncoding="UTF-8-BOM")
+pn <- read.csv("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/ITALY_NFI_infc05/Punti_INFC/punti infc alto adige/infc popolamento e necromassa alto adige e tipi forestali con coordinate_2022_05_05.csv", fileEncoding="UTF-8-BOM")
+# unisco i due data set per idpunto
+infc_st <- left_join(pn, nfs, by = "idpunto")
+infc_st <- infc_st %>% dplyr::select(-c(WTYP_CODE.y, WTYP_CODE.x))
 
-infc <- left_join(pn, nfs, by = "idpunto")
-infc <- infc %>% dplyr::select(-c(WTYP_CODE.y, WTYP_CODE.x))
-
-# creo una nuova colonna per i gruppi forestali: utilizzo il valore del gruppo del secondo dataframe, se ? NA uso quello del primo
-for(i in 1:nrow(infc)){
-  infc$WGRU_CODE[i] <- ifelse(is.na(infc$WGRU_CODE.y[i]) == FALSE, infc$WGRU_CODE.y[i], infc$WGRU_CODE.x[i])
+# creo una nuova colonna per i gruppi forestali: utilizzo il valore del gruppo del secondo dataframe, se è NA uso quello del primo
+for(i in 1:nrow(infc_st)){
+  infc_st$WGRU_CODE[i] <- ifelse(is.na(infc_st$WGRU_CODE.y[i]) == FALSE, infc_st$WGRU_CODE.y[i], infc_st$WGRU_CODE.x[i])
 }
 
-infc <- infc %>% select(-c(WGRU_CODE.x, WGRU_CODE.y, LAT_WGS84, LON_WGS84))
+infc_st <- infc_st %>% select(-c(WGRU_CODE.x, WGRU_CODE.y, LAT_WGS84, LON_WGS84))
 
-#write.csv(infc, paste0("INFC data South Tyrol/dati utili INFC alto adige_", Sys.Date(), ".csv"), row.names = FALSE)
+#write.csv(infc_st, paste0("INFC data South Tyrol/INFC iLand south tyrol_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+
 
 
 # 2 Creazione di classi per elevazione, slope e aspect ----
 
+## file creato su gis, associando ai punti infc i dati di elevation, slope e aspect
 #data <- read.csv("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
 
-# classi altitudinali come quelle nel file di deadwood di Katarina per lo Stubai pi? altre classi sopra i 1500 m: 
+# classi altitudinali come quelle nel file di deadwood di Katarina per lo Stubai 
 data$elevation <- round(data$elevation)
 data$ele_cat <- ifelse(data$elevation<300,1, 
                        ifelse(data$elevation %in% c(300:599), 2, 
@@ -68,20 +66,23 @@ data <- left_join(data, infc, keep=FALSE)
 data <- data %>% select(-1)
 data <- data[, c(1, 2, 3, 11, 4, 5, 6, 7, 8, 9, 10, 18, 12, 13, 14, 15, 16, 17)]
 
-#write.csv(data, paste0("C:/Users/seba_/Documents/Seba/Progetti_gitLab/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_", Sys.Date(), "_.csv"))
+#write.csv(data, paste0("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+
 
 
 # 3 Campionamento dei valori per gli attributi infc da assegnare alle varie classi ----
-data <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-10_.csv")
+
+data <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-19_09.21.csv")
 data <- data %>% select(-X)
+## questa parte non serve 
+#wgroup <- as.data.frame(table(data$WGRU_CODE))
+#wgroup$Var1 <- as.character(wgroup$Var1)
 
-wgroup <- as.data.frame(table(data$WGRU_CODE))
-wgroup$Var1 <- as.character(wgroup$Var1)
-
-ele_data <- list()
+#ele_data <- list()
 
 # primo ciclo per ogni categoria forestale presente nel dataframe iniziale
-for(group in 1:nrow(wgroup)){
+#for(group in 1:nrow(wgroup)){
   df_wg <- data %>% filter(WGRU_CODE == wgroup$Var1[group])
   # creo un vettore contenente i valori delle varie classi
   classes <- c(0:9)
@@ -123,12 +124,12 @@ for(group in 1:nrow(wgroup)){
 }
 
 # creo un dataframe vuoto da utilizzare successivamente
-infc_df <- data.frame(matrix(nrow = 0, ncol = 4))
-columns <- c("class_index", "WG", "infc_var", "value")
-colnames(empty_df) <- columns
+# infc_df <- data.frame(matrix(nrow = 0, ncol = 4))
+# columns <- c("class_index", "WG", "infc_var", "value")
+# colnames(empty_df) <- columns
 
 # ciclo per ogni lista relativa ad una categoria forestale
-for(e in 1:12){
+#for(e in 1:12){
   # leggo le liste come data frame e trasformo le intestazioni delle righe in colonna
   ds <- as.data.frame(ele_data[e])
   ds <- rownames_to_column(ds, "class_index")
@@ -140,15 +141,15 @@ for(e in 1:12){
 
 
 
-
 ## prova soil sampling 16/05/2022
 
+# carico il raster stack dell'area di studio
 STarea <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/soil_venosta_2022-04-12.csv")
-
+# estraggo categorie forestali dai tipi
 for(t in 1:nrow(STarea)){
   STarea$cat_for[t] <- str_extract(STarea$tipi_for[t], "[A-z]+" )
 }
-
+# creo classi altitduinali da script di Katharina
 STarea$elevation <- round_any(STarea$elevation, 100)
 STarea <- STarea %>% select(c(1:15,68))
 STarea$xy <- paste(STarea$x, STarea$y, sep="")
@@ -251,26 +252,68 @@ for (i in (unique(STarea$cat_for))){
 }
 
 soil_all <- soil_all %>% select(c(4:12, 16:18))
-soil_all <- soil_all %>% 
+
+soil_esa <- soil_all %>% 
   dplyr::group_by(WGRU_CODE, ele_cat, slope_cat, asp_cat) %>% 
   summarise_all(.funs = mean, na.rm=TRUE)
-soil_all <- soil_all %>% rename(cat_for = WGRU_CODE)
+soil_esa <- soil_esa %>% rename(cat_for = WGRU_CODE)
 
-infc_raster <- left_join(STarea, soil_all, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"))
+soil_es <- soil_all %>% 
+  dplyr::group_by(WGRU_CODE, ele_cat, slope_cat) %>% 
+  summarise_all(.funs = mean, na.rm=TRUE) %>% 
+  select(-asp_cat)
+soil_es <- soil_es %>% rename(cat_for = WGRU_CODE)
 
-prova <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat"), all.x =TRUE)
+soil_e <- soil_all %>% 
+  dplyr::group_by(WGRU_CODE, ele_cat) %>% 
+  summarise_all(.funs = mean, na.rm=TRUE) %>% 
+  select(-c(slope_cat, asp_cat))
+soil_e <- soil_e %>% rename(cat_for = WGRU_CODE)
 
-soil_raster <- merge(x=STarea, y=soil_all, by = c("cat_for", "ele_cat"), all=TRUE)
+# left join tra dati area studio e dati infc mediati per categoria forestale, altitudine, pendenza ed esposizione
+infc_raster <- left_join(STarea, soil_esa, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"))
 
-for(i in 1:nrow(soil_raster)){
-  if(soil_raster[i,]$depth == 0){
-    soil_raster[i,][,16:66] <- 0
-  }
-}
+# estrazione NA dal dataset ottenuto col join
+na <- infc_raster[is.na(infc_raster$Capm_ha) & is.na(infc_raster$Cce_ha) & is.na(infc_raster$Cne_ha) & 
+                    is.na(infc_raster$Cnef_ha) & is.na(infc_raster$Clt_ha) & is.na(infc_raster$Cor_ha) &
+                    is.na(infc_raster$Css_ha) & is.na(infc_raster$Csp_ha),]
 
-soil_raster <- soil_raster %>% rename(tipi_for = tipi_for.x)
+# estrazione dei dati non NA
+infc_raster_esa <- infc_raster[!is.na(infc_raster$Capm_ha) & !is.na(infc_raster$Cce_ha) & !is.na(infc_raster$Cne_ha) & 
+                       !is.na(infc_raster$Cnef_ha) & !is.na(infc_raster$Clt_ha) & !is.na(infc_raster$Cor_ha) &
+                       !is.na(infc_raster$Css_ha) & !is.na(infc_raster$Csp_ha),]
+  
+  
+join1 <- left_join(na, soil_es, by = c("cat_for", "ele_cat", "slope_cat"), keep = FALSE)
 
-write.csv(soil_raster, paste0("VAL_VENOSTA/soil_venosta_", Sys.Date(), ".csv"), row.names = FALSE )
+join1 <- select(join1, -c(17:24))
+#col_names <- colnames(join1[17:24]) <- sub("*\\.[A-z]", "", colnames(join1)[17:24])
+#colnames(join1)[17:24] <- col_names
+colnames(join1)[17:24] <- sub("*\\.[A-z]", "", colnames(join1)[17:24])
+
+na_es <- join1[is.na(join1$Capm_ha) & is.na(join1$Cce_ha) & is.na(join1$Cne_ha) & is.na(join1$Cnef_ha) & 
+                 is.na(join1$Clt_ha) & is.na(join1$Cor_ha) & is.na(join1$Css_ha) & is.na(join1$Csp_ha),]
+
+infc_raster_es <- join1[!is.na(join1$Capm_ha) & !is.na(join1$Cce_ha) & !is.na(join1$Cne_ha) & !is.na(join1$Cnef_ha) &
+                          !is.na(join1$Clt_ha) & !is.na(join1$Cor_ha) & !is.na(join1$Css_ha) & !is.na(join1$Csp_ha),]
+
+join2 <- left_join(na_es, soil_e, by = c("cat_for", "ele_cat"), keep = FALSE)
+
+join2 <- select(join2, -c(17:24))
+colnames(join2)[17:24] <- sub("*\\.[A-z]", "", colnames(join2)[17:24])
+
+
+
+
+# 
+# for(i in 1:nrow(soil_raster)){
+#   if(soil_raster[i,]$depth == 0){
+#     soil_raster[i,][,16:66] <- 0
+#   }
+# }
+
+
+write.csv(infc_raster, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
 
 
   
