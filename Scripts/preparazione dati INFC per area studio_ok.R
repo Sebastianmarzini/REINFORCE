@@ -251,7 +251,8 @@ for (i in (unique(STarea$cat_for))){
   }
 }
 
-soil_all <- soil_all %>% select(c(4:12, 16:18))
+# seleziono colonne categorie forestali, dati infc e classi di altitudine, pendenza ed esposizione
+soil_all <- soil_all %>% select(c(2:10, 14:16))
 
 soil_esa <- soil_all %>% 
   dplyr::group_by(WGRU_CODE, ele_cat, slope_cat, asp_cat) %>% 
@@ -271,49 +272,65 @@ soil_e <- soil_all %>%
 soil_e <- soil_e %>% rename(cat_for = WGRU_CODE)
 
 # left join tra dati area studio e dati infc mediati per categoria forestale, altitudine, pendenza ed esposizione
-infc_raster <- left_join(STarea, soil_esa, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"))
-
-# estrazione NA dal dataset ottenuto col join
-na <- infc_raster[is.na(infc_raster$Capm_ha) & is.na(infc_raster$Cce_ha) & is.na(infc_raster$Cne_ha) & 
-                    is.na(infc_raster$Cnef_ha) & is.na(infc_raster$Clt_ha) & is.na(infc_raster$Cor_ha) &
-                    is.na(infc_raster$Css_ha) & is.na(infc_raster$Csp_ha),]
+infc_raster_esa <- left_join(STarea, soil_esa, by = c("cat_for", "ele_cat", "slope_cat", "asp_cat"))
 
 # estrazione dei dati non NA
-infc_raster_esa <- infc_raster[!is.na(infc_raster$Capm_ha) & !is.na(infc_raster$Cce_ha) & !is.na(infc_raster$Cne_ha) & 
-                       !is.na(infc_raster$Cnef_ha) & !is.na(infc_raster$Clt_ha) & !is.na(infc_raster$Cor_ha) &
-                       !is.na(infc_raster$Css_ha) & !is.na(infc_raster$Csp_ha),]
+nonNa_esa <- infc_raster_esa[!is.na(infc_raster_esa$Capm_ha) & !is.na(infc_raster_esa$Cce_ha) & !is.na(infc_raster_esa$Cne_ha),]
   
-  
-join1 <- left_join(na, soil_es, by = c("cat_for", "ele_cat", "slope_cat"), keep = FALSE)
-
+# left join tra il database ottenuto dal join precedente (solo NA!!) e quello con i valori infc calcolati per categoria forestale,
+# altitudine e pendenza
+join1 <- left_join(infc_raster_esa[is.na(infc_raster_esa$Capm_ha) & is.na(infc_raster_esa$Cce_ha) & is.na(infc_raster_esa$Cne_ha) & 
+                                     is.na(infc_raster_esa$Cnef_ha) & is.na(infc_raster_esa$Clt_ha) & is.na(infc_raster_esa$Cor_ha) &
+                                     is.na(infc_raster_esa$Css_ha) & is.na(infc_raster_esa$Csp_ha),],
+                   soil_es, by = c("cat_for", "ele_cat", "slope_cat"), keep = FALSE)
 join1 <- select(join1, -c(17:24))
-#col_names <- colnames(join1[17:24]) <- sub("*\\.[A-z]", "", colnames(join1)[17:24])
-#colnames(join1)[17:24] <- col_names
 colnames(join1)[17:24] <- sub("*\\.[A-z]", "", colnames(join1)[17:24])
 
-na_es <- join1[is.na(join1$Capm_ha) & is.na(join1$Cce_ha) & is.na(join1$Cne_ha) & is.na(join1$Cnef_ha) & 
-                 is.na(join1$Clt_ha) & is.na(join1$Cor_ha) & is.na(join1$Css_ha) & is.na(join1$Csp_ha),]
+nonNa_es <- join1[!is.na(join1$Capm_ha) & !is.na(join1$Cce_ha) & !is.na(join1$Cne_ha),]
 
-infc_raster_es <- join1[!is.na(join1$Capm_ha) & !is.na(join1$Cce_ha) & !is.na(join1$Cne_ha) & !is.na(join1$Cnef_ha) &
-                          !is.na(join1$Clt_ha) & !is.na(join1$Cor_ha) & !is.na(join1$Css_ha) & !is.na(join1$Csp_ha),]
-
-join2 <- left_join(na_es, soil_e, by = c("cat_for", "ele_cat"), keep = FALSE)
+# stesso procedimento di sopra ma i valori infc sono calcolati per categoria forestale e altitudine
+join2 <- left_join(join1[is.na(join1$Capm_ha) & is.na(join1$Cce_ha) & is.na(join1$Cne_ha) & is.na(join1$Cnef_ha) & 
+                           is.na(join1$Clt_ha) & is.na(join1$Cor_ha) & is.na(join1$Css_ha) & is.na(join1$Csp_ha),], 
+                   soil_e, by = c("cat_for", "ele_cat"), keep = FALSE)
 
 join2 <- select(join2, -c(17:24))
 colnames(join2)[17:24] <- sub("*\\.[A-z]", "", colnames(join2)[17:24])
 
+# unisco insieme: i dati infc del primo join, i dati infc del secondo join e quelli del terzo join
+ru_infc <- rbind(nonNa_esa, nonNa_es, join2)
 
+# per i dati di necromassa fine e suolo ci sono pochi dati quindi uso quelli disponibili e li estendo a tutta la categoria forestale
+dwd <- ru_infc %>% select(cat_for, Cnef_ha, Clt_ha, Cor_ha, Css_ha, Csp_ha)
+dwd_cf <- dwd %>% 
+  dplyr::group_by(cat_for) %>% 
+  summarise_all(.funs = mean, na.rm=TRUE) %>% 
+  na.omit()
+dwd_cf <- na.omit(dwd_cf)
 
+for(i in 1:nrow(dwd_cf)){
+  for(l in 1:nrow(ru_infc)){
+    if(dwd_cf$cat_for[i] == ru_infc$cat_for[l]){
+      ru_infc$Cnef_ha[l] <- dwd_cf$Cnef_ha[i]
+      ru_infc$Clt_ha[l] <- dwd_cf$Clt_ha[i]
+      ru_infc$Cor_ha[l] <- dwd_cf$Cor_ha[i]
+      ru_infc$Css_ha[l] <- dwd_cf$Css_ha[i]
+      ru_infc$Csp_ha[l] <- dwd_cf$Csp_ha[i]
+    }
+  }
+}
 
-# 
-# for(i in 1:nrow(soil_raster)){
-#   if(soil_raster[i,]$depth == 0){
-#     soil_raster[i,][,16:66] <- 0
-#   }
-# }
+# la categoria forestale del lariceto (La) non ha dati INFC per la classe altitudinale 5 quindi faccio una media tra la 4 e la 6
 
+for(i in 1:nrow(ru_infc)){
+  if (ru_infc$cat_for[i] == "La" & ru_infc$ele_cat[i] == 5){
+      ru_infc$Capm_ha[i] <- mean(subset(ru_infc$Capm_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+      ru_infc$Cce_ha[i] <- mean(subset(ru_infc$Cce_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+      ru_infc$Cne_ha[i] <- mean(subset(ru_infc$Cne_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+  }
+}
 
-write.csv(infc_raster, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
+write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
+
 
 
   
