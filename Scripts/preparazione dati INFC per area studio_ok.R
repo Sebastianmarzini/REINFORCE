@@ -259,7 +259,7 @@ soil_esa <- soil_all %>%
   summarise_all(.funs = mean, na.rm=TRUE)
 soil_esa <- soil_esa %>% rename(cat_for = WGRU_CODE)
 
-soil_es <- soil_all %>% 
+ soil_es <- soil_all %>% 
   dplyr::group_by(WGRU_CODE, ele_cat, slope_cat) %>% 
   summarise_all(.funs = mean, na.rm=TRUE) %>% 
   select(-asp_cat)
@@ -320,75 +320,110 @@ for(i in 1:nrow(dwd_cf)){
 }
 
 # la categoria forestale del lariceto (La) non ha dati INFC per la classe altitudinale 5 quindi faccio una media tra la 4 e la 6
-
 for(i in 1:nrow(ru_infc)){
-  if (ru_infc$cat_for[i] == "La" & ru_infc$ele_cat[i] == 5){
-      ru_infc$Capm_ha[i] <- mean(subset(ru_infc$Capm_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
-      ru_infc$Cce_ha[i] <- mean(subset(ru_infc$Cce_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
-      ru_infc$Cne_ha[i] <- mean(subset(ru_infc$Cne_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+  if(ru_infc$cat_for[i] == "La" & ru_infc$ele_cat[i] == 5){
+    ru_infc$Capm_ha[i] <- mean(subset(ru_infc$Capm_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+    ru_infc$Cce_ha[i] <- mean(subset(ru_infc$Cce_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+    ru_infc$Cne_ha[i] <- mean(subset(ru_infc$Cne_ha, ru_infc$ele_cat == 6 & ru_infc$cat_for == "La"))/2
+  } 
+}
+
+# 1 - non ci sono dati di necromassa fine e suolo per Fi e EK:
+#     per Fi uso quelli di Fs, per EK faccio media tra Ei e Ki;
+# 2 - metto a 0 i vari valori di carbonio per le resource units con profondità == 0
+for(i in 1:nrow(ru_infc)){
+  if(ru_infc$cat_for[i] == "Fi") {
+    ru_infc$Cnef_ha[i] <- ru_infc$Cnef_ha[ru_infc$cat_for == "Fs"][1]
+    ru_infc$Clt_ha[i] <- ru_infc$Clt_ha[ru_infc$cat_for == "Fs"][1]
+    ru_infc$Cor_ha[i] <- ru_infc$Cor_ha[ru_infc$cat_for == "Fs"][1]
+    ru_infc$Css_ha[i] <- ru_infc$Css_ha[ru_infc$cat_for == "Fs"][1]
+    ru_infc$Csp_ha[i] <- ru_infc$Csp_ha[ru_infc$cat_for == "Fs"][1]
+  }
+  if(ru_infc$cat_for[i] == "EK") {
+    ru_infc$Cnef_ha[i] <- (ru_infc$Cnef_ha[ru_infc$cat_for == "Ei"][1] + ru_infc$Cnef_ha[ru_infc$cat_for == "Ki"][1])/2
+    ru_infc$Clt_ha[i] <- (ru_infc$Clt_ha[ru_infc$cat_for == "Ei"][1] + ru_infc$Clt_ha[ru_infc$cat_for == "Ki"][1])/2
+    ru_infc$Cor_ha[i] <- (ru_infc$Cor_ha[ru_infc$cat_for == "Ei"][1] + ru_infc$Cor_ha[ru_infc$cat_for == "Ki"][1])/2
+    ru_infc$Css_ha[i] <- (ru_infc$Css_ha[ru_infc$cat_for == "Ei"][1] + ru_infc$Css_ha[ru_infc$cat_for == "Ki"][1])/2
+    ru_infc$Csp_ha[i] <- (ru_infc$Csp_ha[ru_infc$cat_for == "Ei"][1] + ru_infc$Csp_ha[ru_infc$cat_for == "Ki"][1])/2
+  }
+  if(ru_infc$depth[i] == 0){
+    ru_infc$Capm_ha[i] <- 0
+    ru_infc$Cce_ha[i] <-  0
+    ru_infc$Cne_ha[i] <-  0
+    ru_infc$Cnef_ha[i] <- 0
+    ru_infc$Clt_ha[i] <- 0
+    ru_infc$Cor_ha[i] <- 0
+    ru_infc$Css_ha[i] <- 0
+    ru_infc$Csp_ha[i] <- 0
   }
 }
+
+ru_infc$soil_type <- ""
+for(i in 1:nrow(ru_infc)){
+  ifelse(startsWith(ru_infc$Bodenlands[i], "AGh") == TRUE, soil_type[i] <-   )
+}
+
 
 write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
 
-prova <- STarea
-
+## da rivedere
+# prova <- STarea
 # col_names <- c("Capm_ha", "Cce_ha", "Cne_ha", "Cnef_ha", "Clt_ha", "Cor_ha", "Css_ha", "Csp_ha")
 # prova[col_names] <- NA
+# for(l in 1:nrow(prova)){
+#   for(m in 1:nrow(soil_esa)){
+#     if(prova$cat_for[l] == soil_esa$cat_for[m] & prova$ele_cat[l] == soil_esa$ele_cat[m] & prova$slope_cat[l] == soil_esa$slope_cat[m] & 
+#        prova$asp_cat[l] == soil_esa$asp_cat[m]){
+#       prova$Capm_ha[l] <- soil_esa$Capm_ha[m]
+#       prova$Cce_ha[l] <-  soil_esa$Cce_ha[m]
+#       prova$Cne_ha[l] <-  soil_esa$Cne_ha[m]
+#       prova$Cnef_ha[l] <- soil_esa$Cnef_ha[m]
+#       prova$Clt_ha[l] <- soil_esa$Clt_ha[m]
+#       prova$Cor_ha[l] <- soil_esa$Cor_ha[m]
+#       prova$Css_ha[l] <- soil_esa$Css_ha[m]
+#       prova$Csp_ha[l] <- soil_esa$Csp_ha[m]
+#     } else {
+#       for(n in 1:nrow(soil_es)){
+#         if(prova$cat_for[l] == soil_esa$cat_for[n] & prova$ele_cat[l] == soil_esa$ele_cat[n] &
+#            prova$slope_cat[l] == soil_esa$slope_cat[n]){
+#           prova$Capm_ha[l] <- soil_esa$Capm_ha[n]
+#           prova$Cce_ha[l] <-  soil_esa$Cce_ha[n]
+#           prova$Cne_ha[l] <-  soil_esa$Cne_ha[n]
+#           prova$Cnef_ha[l] <- soil_esa$Cnef_ha[n]
+#           prova$Clt_ha[l] <- soil_esa$Clt_ha[n]
+#           prova$Cor_ha[l] <- soil_esa$Cor_ha[n]
+#           prova$Css_ha[l] <- soil_esa$Css_ha[n]
+#           prova$Csp_ha[l] <- soil_esa$Csp_ha[n]
+#         } else {
+#           for(o in 1:nrow(soil_e)){
+#             if(prova$cat_for[l] == soil_esa$cat_for[o] & prova$ele_cat[l] == soil_esa$ele_cat[o]){
+#               prova$Capm_ha[l] <- soil_esa$Capm_ha[o]
+#               prova$Cce_ha[l] <-  soil_esa$Cce_ha[o]
+#               prova$Cne_ha[l] <-  soil_esa$Cne_ha[o]
+#               prova$Cnef_ha[l] <- soil_esa$Cnef_ha[o]
+#               prova$Clt_ha[l] <- soil_esa$Clt_ha[o]
+#               prova$Cor_ha[l] <- soil_esa$Cor_ha[o]
+#               prova$Css_ha[l] <- soil_esa$Css_ha[o]
+#               prova$Csp_ha[l] <- soil_esa$Csp_ha[o]
+#             } else {
+#               # prova$Capm_ha[l] <- NA
+#               # prova$Cce_ha[l] <-  NA
+#               # prova$Cne_ha[l] <-  NA
+#               # prova$Cnef_ha[l] <- NA
+#               # prova$Clt_ha[l] <- NA
+#               # prova$Cor_ha[l] <- NA
+#               # prova$Css_ha[l] <- NA
+#               # prova$Csp_ha[l] <- NA
+#               next
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-for(l in 1:nrow(prova)){
-  for(m in 1:nrow(soil_esa)){
-    if(prova$cat_for[l] == soil_esa$cat_for[m] & prova$ele_cat[l] == soil_esa$ele_cat[m] & prova$slope_cat[l] == soil_esa$slope_cat[m] & 
-       prova$asp_cat[l] == soil_esa$asp_cat[m]){
-      prova$Capm_ha[l] <- soil_esa$Capm_ha[m]
-      prova$Cce_ha[l] <-  soil_esa$Cce_ha[m]
-      prova$Cne_ha[l] <-  soil_esa$Cne_ha[m]
-      prova$Cnef_ha[l] <- soil_esa$Cnef_ha[m]
-      prova$Clt_ha[l] <- soil_esa$Clt_ha[m]
-      prova$Cor_ha[l] <- soil_esa$Cor_ha[m]
-      prova$Css_ha[l] <- soil_esa$Css_ha[m]
-      prova$Csp_ha[l] <- soil_esa$Csp_ha[m]
-    } else {
-      for(n in 1:nrow(soil_es)){
-        if(prova$cat_for[l] == soil_esa$cat_for[n] & prova$ele_cat[l] == soil_esa$ele_cat[n] & 
-           prova$slope_cat[l] == soil_esa$slope_cat[n]){
-          prova$Capm_ha[l] <- soil_esa$Capm_ha[n]
-          prova$Cce_ha[l] <-  soil_esa$Cce_ha[n]
-          prova$Cne_ha[l] <-  soil_esa$Cne_ha[n]
-          prova$Cnef_ha[l] <- soil_esa$Cnef_ha[n]
-          prova$Clt_ha[l] <- soil_esa$Clt_ha[n]
-          prova$Cor_ha[l] <- soil_esa$Cor_ha[n]
-          prova$Css_ha[l] <- soil_esa$Css_ha[n]
-          prova$Csp_ha[l] <- soil_esa$Csp_ha[n]
-        } else {
-          for(o in 1:nrow(soil_e)){
-            if(prova$cat_for[l] == soil_esa$cat_for[o] & prova$ele_cat[l] == soil_esa$ele_cat[o]){
-              prova$Capm_ha[l] <- soil_esa$Capm_ha[o]
-              prova$Cce_ha[l] <-  soil_esa$Cce_ha[o]
-              prova$Cne_ha[l] <-  soil_esa$Cne_ha[o]
-              prova$Cnef_ha[l] <- soil_esa$Cnef_ha[o]
-              prova$Clt_ha[l] <- soil_esa$Clt_ha[o]
-              prova$Cor_ha[l] <- soil_esa$Cor_ha[o]
-              prova$Css_ha[l] <- soil_esa$Css_ha[o]
-              prova$Csp_ha[l] <- soil_esa$Csp_ha[o]
-            } else {
-              prova$Capm_ha[l] <- NA
-              prova$Cce_ha[l] <-  NA
-              prova$Cne_ha[l] <-  NA
-              prova$Cnef_ha[l] <- NA
-              prova$Clt_ha[l] <- NA
-              prova$Cor_ha[l] <- NA
-              prova$Css_ha[l] <- NA
-              prova$Csp_ha[l] <- NA
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-
+#df <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-05-20_11.25.csv")
 
 
 
