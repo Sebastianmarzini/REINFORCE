@@ -358,10 +358,32 @@ for(i in 1:nrow(ru_infc)){
   }
 }
 
-ru_infc$soil_type <- ""
+# creo colonna SOMC per dati fuori aree forestali e ci inserisco dei valori medi calcolati con quelli del BMS
+ru_infc$SOMC_nf <- NA
 for(i in 1:nrow(ru_infc)){
-  ifelse(startsWith(ru_infc$Bodenlands[i], "AGh") == TRUE, soil_type[i] <-   )
+  ifelse(startsWith(ru_infc$Bodenlands[i], "EW") == TRUE, ru_infc$SOMC_nf[i] <- 176215,
+         ifelse(ru_infc[i,]$Bodenlands == "AGh_EW-IA-MA_o2200", ru_infc$SOMC_nf[i] <- 260680,
+                ifelse(ru_infc[i,]$Bodenlands == "AGh_EW-UC-UG_o2200", ru_infc$SOMC_nf[i] <- 260680,
+                       ifelse(ru_infc[i,]$Bodenlands == "AGh-MB_IU", ru_infc$SOMC_nf[i] <- 260680,
+                              ifelse(ru_infc[i,]$Bodenlands == "AGh-UF", ru_infc$SOMC_nf[i] <- 260680,
+                                     ifelse(ru_infc[i,]$Bodenlands == "AGh-UG-GB", ru_infc$SOMC_nf[i] <- 260680,
+                                            ifelse(ru_infc[i,]$Bodenlands == "AGh-U-Undiff", ru_infc$SOMC_nf[i] <- 260680,
+                                                   ifelse(ru_infc[i,]$Bodenlands == "AGh_EW-IA-MA_u2200", ru_infc$SOMC_nf[i] <- 229213.2143,
+                                                          ifelse(ru_infc[i,]$Bodenlands == "AGh_EW-UC-UG_u2200", ru_infc$SOMC_nf[i] <- 229213.2143,
+                                                                 ifelse(startsWith(ru_infc$Bodenlands[i], "ZSG") == TRUE, ru_infc$SOMC_nf[i] <- NA,
+                                                                        ifelse(ru_infc[i,]$Bodenlands == "TR", ru_infc$SOMC_nf[i] <- 107663.1111,
+                                                                               ifelse(ru_infc[i,]$Bodenlands == "Fels" & ru_infc[i,]$depth > 0 & ru_infc[i,]$tipi_for == "nf", ru_infc$SOMC_nf[i] <- 24960, NA))))))))))))
 }
+
+# converto i dati INFC in kg/ha
+ru_infc$Capm_ha <- ru_infc$Capm_ha*1000
+ru_infc$Cce_ha <- ru_infc$Cce_ha*1000
+ru_infc$Cne_ha <- ru_infc$Cne_ha*1000
+ru_infc$Cnef_ha <- ru_infc$Cnef_ha*1000
+ru_infc$Clt_ha <- ru_infc$Clt_ha*1000
+ru_infc$Cor_ha <- ru_infc$Cor_ha*1000
+ru_infc$Css_ha <- ru_infc$Css_ha*1000
+ru_infc$Csp_ha <- ru_infc$Csp_ha*1000
 
 
 write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
