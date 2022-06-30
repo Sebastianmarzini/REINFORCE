@@ -412,16 +412,18 @@ infc_data2 <- infc_data2 %>% rename(ID = idpunto)
 
 infc_ok <- left_join(infc.sel, infc_data2)
 
-deadwood <- read.xlsx("D:/Projects/RESIN/Stubaital/Bodendaten/deadwood_tyrol.xlsx",1) ##exported from AFI website, waldinventur.at
+deadwood <- readxl::read_xlsx("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/STUBAI/deadwood_tyrol.xlsx",1) ##exported from AFI website, waldinventur.at
 deadwood$ele_cat <- c(1,2,3,4,5,6,NA)
 head(deadwood)
 
-soil_raster$ele_cwd <- ifelse(soil_raster$elevation<300, 1, 
-                              ifelse(soil_raster$elevation %in% c(300:599), 2, 
-                                     ifelse(soil_raster$elevation %in% c(600:899), 3,
-                                            ifelse(soil_raster$elevation %in% c(900:1199), 4, 
-                                                   ifelse(soil_raster$elevation %in% c(1200:1499), 5,
-                                                          ifelse(soil_raster$elevation>1499, 6, NA))))))
+head(soil_raster)
+
+soil_raster$ele_cwd <- ifelse(soil_raster$ele_cat < 300, 1, 
+                              ifelse(soil_raster$ele_cat %in% c(300:599), 2, 
+                                     ifelse(soil_raster$ele_cat %in% c(600:899), 3,
+                                            ifelse(soil_raster$ele_cat %in% c(900:1199), 4, 
+                                                   ifelse(soil_raster$ele_cat %in% c(1200:1499), 5,
+                                                          ifelse(soil_raster$ele_cat > 1499, 6, NA))))))
 head(soil_raster)
 
 #prova <- soil_raster %>% select(elevation, ele_cwd)
