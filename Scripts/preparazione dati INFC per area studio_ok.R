@@ -375,78 +375,110 @@ for(i in 1:nrow(ru_infc)){
                                                                                ifelse(ru_infc[i,]$Bodenlands == "Fels" & ru_infc[i,]$depth > 0 & ru_infc[i,]$tipi_for == "nf", ru_infc$SOMC_nf[i] <- 24960, NA))))))))))))
 }
 
+#write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+#write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+navtf <- read.csv("Dati aree studio/Venosta/Nav_tipiForestali.csv") %>% rename (tipi_for = Forest.Type)
+
+infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-06-28_13.42.csv")
+
+# inserisco i valori di Nav calcolati per le varie tipologie forestali
+
+infcv <- left_join(infcv, navtf, by = "tipi_for")
+
+# utilizzo valori di necromassa fine e suolo del larice-cembreta per il lariceto
+
+for(i in 1:nrow(infcv)){
+  if(infcv$cat_for[i] == "La"){
+    infcv$Cnef_ha[i] <- infcv$Cnef_ha[infcv$cat_for == "Zi"][1]
+    infcv$Clt_ha[i] <- infcv$Clt_ha[infcv$cat_for == "Zi"][1]
+    infcv$Cor_ha[i] <- infcv$Cor_ha[infcv$cat_for == "Zi"][1]
+    infcv$Css_ha[i] <- infcv$Css_ha[infcv$cat_for == "Zi"][1]
+    infcv$Csp_ha[i] <- infcv$Csp_ha[infcv$cat_for == "Zi"][1]
+  }
+  if(infcv$cat_for[i] == "EK" & infcv$ele_cat[i] == 5){
+    infcv$Capm_ha[i] <- mean(infcv$Capm_ha[infcv$cat_for == "EK" & infcv$ele_cat == 4])
+    infcv$Cce_ha[i] <- mean(infcv$Cce_ha[infcv$cat_for == "EK" & infcv$ele_cat == 4])
+    infcv$Cne_ha[i] <- mean(infcv$Cne_ha[infcv$cat_for == "EK" & infcv$ele_cat == 4])
+  } 
+  # Lh è presente solo in due resource units.Do 0 a i valori di necromassa fine e suolo
+  if(infcv$cat_for[i] == "Lh"){
+    infcv$Cnef_ha[i] <- 0
+    infcv$Clt_ha[i] <- 0
+    infcv$Cor_ha[i] <- 0
+    infcv$Css_ha[i] <- 0
+    infcv$Csp_ha[i] <- 0
+  }
+}
+
+# inserisco valore SOMC per bodenlands MW che avevo dimenticato precedentemente. Il valore è calcolato mediando quelli delle altre
+# categorie relative a pascoli o praterie da sfalcio
+
+for(i in 1:nrow(infcv)){
+  if(infcv[i,]$Bodenlands == "MW"){
+    infcv$SOMC_nf[i] <- 186886.5302
+  }
+}
+
 # converto i dati INFC in kg/ha
-ru_infc$Capm_ha <- ru_infc$Capm_ha*1000
-ru_infc$Cce_ha <- ru_infc$Cce_ha*1000
-ru_infc$Cne_ha <- ru_infc$Cne_ha*1000
-ru_infc$Cnef_ha <- ru_infc$Cnef_ha*1000
-ru_infc$Clt_ha <- ru_infc$Clt_ha*1000
-ru_infc$Cor_ha <- ru_infc$Cor_ha*1000
-ru_infc$Css_ha <- ru_infc$Css_ha*1000
-ru_infc$Csp_ha <- ru_infc$Csp_ha*1000
+infcv$Capm_ha <- infcv$Capm_ha*1000
+infcv$Cce_ha <- infcv$Cce_ha*1000
+infcv$Cne_ha <- infcv$Cne_ha*1000
+infcv$Cnef_ha <- infcv$Cnef_ha*1000
+infcv$Clt_ha <- infcv$Clt_ha*1000
+infcv$Cor_ha <- infcv$Cor_ha*1000
+infcv$Css_ha <- infcv$Css_ha*1000
+infcv$Csp_ha <- infcv$Csp_ha*1000
+
+infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-06-28_15.28_old.csv")
+
+# creo le colonne per le variabili del project file di iLand
+infcv$youngLabileC <-  infcv$Cnef_ha + infcv$Clt_ha + infcv$Cor_ha
+infcv$somC = infcv$Css_ha + infcv$Csp_ha
+
+infcv <- infcv %>% rename(swdC = Capm_ha,
+                          otherC = Cce_ha,
+                          youngRefractoryC = Cne_ha)
+
+infcv <- infcv %>% select(-c(Cnef_ha, Clt_ha, Cor_ha, Css_ha, Csp_ha))
+
+# per le categorie senza dati uso quelli di Katharina da deadwood_tyrol in base alle classi altitudinali
+for(i in 1:nrow(infcv)){
+  if(infcv$cat_for[i] == "Ge" | infcv$cat_for[i] == "Lat" | infcv$cat_for[i] == "AT" | infcv$cat_for[i] == "AS" | infcv$cat_for[i] == "AE" & infcv$ele_cat[i] == 3){
+    infcv$swdC[i] <- 4.4*250
+    infcv$somC[i] <- 0
+    infcv$youngLabileC[i] <- 0
+    infcv$youngRefractoryC[i] <- 0
+    infcv$otherC[i] <- 4.4*250*1.62
+  }
+  if(infcv$cat_for[i] == "Ge" | infcv$cat_for[i] == "Lat" | infcv$cat_for[i] == "AT" | infcv$cat_for[i] == "AS" | infcv$cat_for[i] == "AE" & infcv$ele_cat[i] == 4){
+    infcv$swdC[i] <- 7.7*250
+    infcv$somC[i] <- 0
+    infcv$youngLabileC[i] <- 0
+    infcv$youngRefractoryC[i] <- 0
+    infcv$otherC[i] <- 7.7*250*1.62
+  }
+  if(infcv$cat_for[i] == "Ge" | infcv$cat_for[i] == "Lat" | infcv$cat_for[i] == "AT" | infcv$cat_for[i] == "AS" | infcv$cat_for[i] == "AE" & infcv$ele_cat[i] == 5){
+    infcv$swdC[i] <- 8.2*250
+    infcv$somC[i] <- 0
+    infcv$youngLabileC[i] <- 0
+    infcv$youngRefractoryC[i] <- 0
+    infcv$otherC[i] <- 8.2*250*1.62
+  }
+  if(infcv$cat_for[i] == "Ge" | infcv$cat_for[i] == "Lat" | infcv$cat_for[i] == "AT" | infcv$cat_for[i] == "AS" | infcv$cat_for[i] == "AE" & infcv$ele_cat[i] == 6){
+    infcv$swdC[i] <- 10.2*250
+    infcv$somC[i] <- 0
+    infcv$youngLabileC[i] <- 0
+    infcv$youngRefractoryC[i] <- 0
+    infcv$otherC[i] <- 8.2*250*1.62
+  }
+}
 
 
-write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE )
+write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
 
-## da rivedere
-# prova <- STarea
-# col_names <- c("Capm_ha", "Cce_ha", "Cne_ha", "Cnef_ha", "Clt_ha", "Cor_ha", "Css_ha", "Csp_ha")
-# prova[col_names] <- NA
-# for(l in 1:nrow(prova)){
-#   for(m in 1:nrow(soil_esa)){
-#     if(prova$cat_for[l] == soil_esa$cat_for[m] & prova$ele_cat[l] == soil_esa$ele_cat[m] & prova$slope_cat[l] == soil_esa$slope_cat[m] & 
-#        prova$asp_cat[l] == soil_esa$asp_cat[m]){
-#       prova$Capm_ha[l] <- soil_esa$Capm_ha[m]
-#       prova$Cce_ha[l] <-  soil_esa$Cce_ha[m]
-#       prova$Cne_ha[l] <-  soil_esa$Cne_ha[m]
-#       prova$Cnef_ha[l] <- soil_esa$Cnef_ha[m]
-#       prova$Clt_ha[l] <- soil_esa$Clt_ha[m]
-#       prova$Cor_ha[l] <- soil_esa$Cor_ha[m]
-#       prova$Css_ha[l] <- soil_esa$Css_ha[m]
-#       prova$Csp_ha[l] <- soil_esa$Csp_ha[m]
-#     } else {
-#       for(n in 1:nrow(soil_es)){
-#         if(prova$cat_for[l] == soil_esa$cat_for[n] & prova$ele_cat[l] == soil_esa$ele_cat[n] &
-#            prova$slope_cat[l] == soil_esa$slope_cat[n]){
-#           prova$Capm_ha[l] <- soil_esa$Capm_ha[n]
-#           prova$Cce_ha[l] <-  soil_esa$Cce_ha[n]
-#           prova$Cne_ha[l] <-  soil_esa$Cne_ha[n]
-#           prova$Cnef_ha[l] <- soil_esa$Cnef_ha[n]
-#           prova$Clt_ha[l] <- soil_esa$Clt_ha[n]
-#           prova$Cor_ha[l] <- soil_esa$Cor_ha[n]
-#           prova$Css_ha[l] <- soil_esa$Css_ha[n]
-#           prova$Csp_ha[l] <- soil_esa$Csp_ha[n]
-#         } else {
-#           for(o in 1:nrow(soil_e)){
-#             if(prova$cat_for[l] == soil_esa$cat_for[o] & prova$ele_cat[l] == soil_esa$ele_cat[o]){
-#               prova$Capm_ha[l] <- soil_esa$Capm_ha[o]
-#               prova$Cce_ha[l] <-  soil_esa$Cce_ha[o]
-#               prova$Cne_ha[l] <-  soil_esa$Cne_ha[o]
-#               prova$Cnef_ha[l] <- soil_esa$Cnef_ha[o]
-#               prova$Clt_ha[l] <- soil_esa$Clt_ha[o]
-#               prova$Cor_ha[l] <- soil_esa$Cor_ha[o]
-#               prova$Css_ha[l] <- soil_esa$Css_ha[o]
-#               prova$Csp_ha[l] <- soil_esa$Csp_ha[o]
-#             } else {
-#               # prova$Capm_ha[l] <- NA
-#               # prova$Cce_ha[l] <-  NA
-#               # prova$Cne_ha[l] <-  NA
-#               # prova$Cnef_ha[l] <- NA
-#               # prova$Clt_ha[l] <- NA
-#               # prova$Cor_ha[l] <- NA
-#               # prova$Css_ha[l] <- NA
-#               # prova$Csp_ha[l] <- NA
-#               next
-#             }
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
-
-#df <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-05-20_11.25.csv")
-
+plot(infcv[, c(4, 18)], type = "h", cex = 2, col = "dark red")
 
 
 
