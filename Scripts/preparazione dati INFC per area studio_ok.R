@@ -197,6 +197,7 @@ select.soil <- function (soil_database_select, elevation, slope, aspect) {
   
   if (length(d)==0) {
     print("removing slope")
+    
     d <- soil_database_select$idpunto[soil_database_select$elevation==elevation]}
   else{(print(d))}
   
@@ -482,7 +483,14 @@ write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time
 
 
 ds <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
-plot(rasterFromXYZ(ds[,c(2,3,21)]))
+
+
+pdf("somC.pdf", width = 9, height = 14)
+plot(
+  rasterFromXYZ(ds[,c(2,3,23)]),
+  main = "somC [kg/ha]",
+  col = rainbow(5))
+dev.off()
 
 
 
