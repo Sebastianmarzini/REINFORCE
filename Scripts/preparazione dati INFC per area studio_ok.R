@@ -73,78 +73,80 @@ data <- data[, c(1, 2, 3, 11, 4, 5, 6, 7, 8, 9, 10, 18, 12, 13, 14, 15, 16, 17)]
 
 # 3 Campionamento dei valori per gli attributi infc da assegnare alle varie classi ----
 
-data <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-19_09.21.csv")
+data <- read.csv("INFC data South Tyrol/infc SouthTyrol_EleSlopeAspect_2022-05-19_09.21.csv")
 data <- data %>% select(-X)
-## questa parte non serve 
+
+# 3.1 DA IGNORARE: tentativo di campionamento dati infc ma non funziona ####
+
 #wgroup <- as.data.frame(table(data$WGRU_CODE))
 #wgroup$Var1 <- as.character(wgroup$Var1)
 
 #ele_data <- list()
 
 # primo ciclo per ogni categoria forestale presente nel dataframe iniziale
-#for(group in 1:nrow(wgroup)){
-  df_wg <- data %>% filter(WGRU_CODE == wgroup$Var1[group])
-  # creo un vettore contenente i valori delle varie classi
-  classes <- c(0:9)
-  # lista vuota da riempire con i valori percentili per ogni classe relativi a tutte le variabili infc
-  infc2 <- list()
-  # lista vuota per i valori infc delle classi presenti relativi ad una sola variabile
-  infc1 <- list()
-  # secondo ciclo for in base alle colonne delle variabili di interesse
-  for(c in c(5:12)){
-    # terzo ciclo for per ogni valore possibile delle classi
-    for (n in classes[]){
-      # quarto ciclo for per ogni riga del data frame relativo ad ogni categoria forestale
-      for(d in 1:nrow(df_wg)){
-        if(nrow(df_wg) == 1){
-          cont <- count(df_wg, ele_cat == n)[1,2]
-          if(cont >= 1 & classes[n] == df_wg$ele_cat[d]){
-            infc1[[paste0("class_", n)]][d] <- df_wg[,c][d]
-          }
-          } else {
-            # conto quanti elementi ci sono per ogni classe, se sono più di 1 (compreso) e se 
-            # il contatore del ciclo corrisponde al numero della classe creo una lista per ogni variabile
-            # infc relativa ad una determinata classe
-            cont <- count(df_wg, ele_cat == n)[2,2]
-            if(cont >= 1 & classes[n] == df_wg$ele_cat[d]){
-            infc1[[paste0("class_", n)]][d] <- df_wg[,c][d]
-          }
-        }
-      }
-    }
-    # creo una lista di liste. Le sotto liste corrispondono alle variabili infc e presentano i valori
-    # per ogni classe altitudinale
-    infc2[[colnames(df_wg[c])]] <- infc1
-  }
-  # per ogni classe altitudinale prendo il 75esimo peercentile
-  infc2 <- lapply(infc2, sapply, quantile, prob = (0.75), names = FALSE, na.rm = TRUE)
-  # creo una lista finale contenente una lista per ogni categoria forestale con dentro i valori delle variabili infc per ogni classe
-  # altitudinale
-  ele_data[[wgroup$Var1[group]]] <- infc2
-}
+# for(group in 1:nrow(wgroup)){
+#   df_wg <- data %>% filter(WGRU_CODE == wgroup$Var1[group])
+#   # creo un vettore contenente i valori delle varie classi
+#   classes <- c(0:9)
+#   # lista vuota da riempire con i valori percentili per ogni classe relativi a tutte le variabili infc
+#   infc2 <- list()
+#   # lista vuota per i valori infc delle classi presenti relativi ad una sola variabile
+#   infc1 <- list()
+#   # secondo ciclo for in base alle colonne delle variabili di interesse
+#   for(c in c(5:12)){
+#     # terzo ciclo for per ogni valore possibile delle classi
+#     for (n in classes[]){
+#       # quarto ciclo for per ogni riga del data frame relativo ad ogni categoria forestale
+#       for(d in 1:nrow(df_wg)){
+#         if(nrow(df_wg) == 1){
+#           cont <- count(df_wg, ele_cat == n)[1,2]
+#           if(cont >= 1 & classes[n] == df_wg$ele_cat[d]){
+#             infc1[[paste0("class_", n)]][d] <- df_wg[,c][d]
+#           }
+#           } else {
+#             # conto quanti elementi ci sono per ogni classe, se sono piu' di 1 (compreso) e se
+#             # il contatore del ciclo corrisponde al numero della classe creo una lista per ogni variabile
+#             # infc relativa ad una determinata classe
+#             cont <- count(df_wg, ele_cat == n)[2,2]
+#             if(cont >= 1 & classes[n] == df_wg$ele_cat[d]){
+#             infc1[[paste0("class_", n)]][d] <- df_wg[,c][d]
+#             }
+#           }
+#       }
+#     }
+# 
+#     # creo una lista di liste. Le sotto liste corrispondono alle variabili infc e presentano i valori
+#     # per ogni classe altitudinale
+#     infc2[[colnames(df_wg[c])]] <- infc1
+#   }
+#   # per ogni classe altitudinale prendo il 75esimo peercentile
+#   infc2 <- lapply(infc2, sapply, quantile, prob = (0.75), names = FALSE, na.rm = TRUE)
+#   # creo una lista finale contenente una lista per ogni categoria forestale con dentro i valori delle variabili infc per ogni classe
+#   # altitudinale
+#   ele_data[[wgroup$Var1[group]]] <- infc2
+# }
+# 
+# # creo un dataframe vuoto da utilizzare successivamente
+# # infc_df <- data.frame(matrix(nrow = 0, ncol = 4))
+# # columns <- c("class_index", "WG", "infc_var", "value")
+# # colnames(empty_df) <- columns
+# 
+# # ciclo per ogni lista relativa ad una categoria forestale
+# for(e in 1:12){
+#   # leggo le liste come data frame e trasformo le intestazioni delle righe in colonna
+#   ds <- as.data.frame(ele_data[e])
+#   ds <- rownames_to_column(ds, "class_index")
+#   ds <- pivot_longer(ds, cols = colnames(ds[-1]))
+#   ds <- separate(data = ds, col = name, into = c("WG", "infc_var"), sep = "\\.")
+#   # creo un dataframe finale per tutte le categorie forestali con i valori delle variabli infc relativi alle classi altitudinali
+#   infc_df <- rbind(infc_df, ds)
+# } 
 
-# creo un dataframe vuoto da utilizzare successivamente
-# infc_df <- data.frame(matrix(nrow = 0, ncol = 4))
-# columns <- c("class_index", "WG", "infc_var", "value")
-# colnames(empty_df) <- columns
 
-# ciclo per ogni lista relativa ad una categoria forestale
-#for(e in 1:12){
-  # leggo le liste come data frame e trasformo le intestazioni delle righe in colonna
-  ds <- as.data.frame(ele_data[e])
-  ds <- rownames_to_column(ds, "class_index")
-  ds <- pivot_longer(ds, cols = colnames(ds[-1]))
-  ds <- separate(data = ds, col = name, into = c("WG", "infc_var"), sep = "\\.")
-  # creo un dataframe finale per tutte le categorie forestali con i valori delle variabli infc relativi alle classi altitudinali
-  infc_df <- rbind(infc_df, ds)
-}
-
-
-
-## prova soil sampling 16/05/2022
+# 3.2 SOIL SAMPLING: usato codice di Katharina e risistemato ####
 
 # carico il raster stack dell'area di studio
-STarea <- read.csv("C:/Users/semarzini/Desktop/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/soil_venosta_2022-04-12.csv")
+STarea <- read.csv("Dati aree studio/Venosta/soil_venosta_2022-04-12.csv")
 # estraggo categorie forestali dai tipi
 for(t in 1:nrow(STarea)){
   STarea$cat_for[t] <- str_extract(STarea$tipi_for[t], "[A-z]+" )
@@ -375,13 +377,13 @@ for(i in 1:nrow(ru_infc)){
                                                                                ifelse(ru_infc[i,]$Bodenlands == "Fels" & ru_infc[i,]$depth > 0 & ru_infc[i,]$tipi_for == "nf", ru_infc$SOMC_nf[i] <- 24960, NA))))))))))))
 }
 
-#write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+write.csv(ru_infc, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
 
 #write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
 
 navtf <- read.csv("Dati aree studio/Venosta/Nav_tipiForestali.csv") %>% rename (tipi_for = Forest.Type)
 
-infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-06-28_13.42.csv")
+infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-07-15_16.37.csv")
 
 # inserisco i valori di Nav calcolati per le varie tipologie forestali
 
@@ -431,7 +433,7 @@ infcv$Cor_ha <- infcv$Cor_ha*1000
 infcv$Css_ha <- infcv$Css_ha*1000
 infcv$Csp_ha <- infcv$Csp_ha*1000
 
-infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-06-28_15.28_old.csv")
+#infcv <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-06-28_15.28_old.csv")
 
 # creo le colonne per le variabili del project file di iLand
 infcv$youngLabileC <-  infcv$Cnef_ha + infcv$Clt_ha + infcv$Cor_ha
@@ -478,11 +480,9 @@ for(i in 1:nrow(infcv)){
 
 write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
 
-plot(infcv[, c(4, 18)], type = "h", cex = 2, col = "dark red")
 
-
-
-
+ds <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
+plot(rasterFromXYZ(ds[,c(2,3,21)]))
 
 
 
