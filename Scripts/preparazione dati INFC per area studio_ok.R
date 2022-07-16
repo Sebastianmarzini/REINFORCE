@@ -4,6 +4,7 @@
 
 rm(list=ls())
 
+library(sf)
 library(raster)
 library(rgdal)
 library(sp)
@@ -482,14 +483,18 @@ for(i in 1:nrow(infcv)){
 write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
 
 
+shp <- st_read("C:/Users/seba_/One Drive Eurac/OneDrive - Scientific Network South Tyrol/Shared/Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS/ProjectArea.shp")
 ds <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
 
 
-pdf("somC.pdf", width = 9, height = 14)
+plot(shp$geometry)
+
+pdf("swdC.pdf", width = 9, height = 14)
 plot(
-  rasterFromXYZ(ds[,c(2,3,23)]),
-  main = "somC [kg/ha]",
+  rasterFromXYZ(ds[,c(2,3,17)]),
+  main = "swdC [kg/ha]",
   col = rainbow(5))
+plot(shp$geometry, add = TRUE)
 dev.off()
 
 
