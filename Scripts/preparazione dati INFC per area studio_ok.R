@@ -497,6 +497,15 @@ plot(
 plot(shp$geometry, add = TRUE)
 dev.off()
 
+summary(ds$somC)
 
+hist(ds$youngLabileC, col = rainbow(1), border = "black", main = "youngLabileC values distribution", 
+     xlab = "youngLabileC [kg/ha]")
+
+ggplot(ds, aes(x=somC)) + 
+  geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                 binwidth=2,
+                 colour="black", fill="green") +
+  geom_density(alpha=.3, fill="#FF6666")
 
   
