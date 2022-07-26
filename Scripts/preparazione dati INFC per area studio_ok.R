@@ -484,28 +484,46 @@ write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time
 
 
 shp <- st_read("C:/Users/seba_/One Drive Eurac/OneDrive - Scientific Network South Tyrol/Shared/Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS/ProjectArea.shp")
-ds <- read.csv("Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
+ds <- read.csv("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
 
 
-plot(shp$geometry)
+# 4 Plot dei dati --------
 
-pdf("swdC.pdf", width = 9, height = 14)
-plot(
-  rasterFromXYZ(ds[,c(2,3,17)]),
-  main = "swdC [kg/ha]",
-  col = rainbow(5))
-plot(shp$geometry, add = TRUE)
-dev.off()
+# plot(shp$geometry)
+# 
+# pdf("swdC.pdf", width = 9, height = 14)
+# plot(
+#   rasterFromXYZ(ds[,c(2,3,17)]),
+#   main = "swdC [kg/ha]",
+#   col = rainbow(5))
+# plot(shp$geometry, add = TRUE)
+# dev.off()
+# 
+# summary(ds$somC)
+# 
+# hist(ds$youngLabileC, col = rainbow(1), border = "black", main = "youngLabileC values distribution", 
+#      xlab = "youngLabileC [kg/ha]")
+# 
+# ggplot(ds, aes(x=somC)) + 
+#   geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+#                  binwidth=2,
+#                  colour="black", fill="green") +
+#   geom_density(alpha=.3, fill="#FF6666")
 
-summary(ds$somC)
+# 5 Creazione environment file ----
 
-hist(ds$youngLabileC, col = rainbow(1), border = "black", main = "youngLabileC values distribution", 
-     xlab = "youngLabileC [kg/ha]")
+cc <- load("Dati aree studio/Venosta/cluster800_object_map.RData") ## IMPORTANT!!! generated in script climate_clustering.R
 
-ggplot(ds, aes(x=somC)) + 
-  geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
-                 binwidth=2,
-                 colour="black", fill="green") +
-  geom_density(alpha=.3, fill="#FF6666")
+iland.ru.id.df <- data.frame(rasterToPoints(iland.ru.id, xy=TRUE)) 
+cluster.map.df <- data.frame(rasterToPoints(cluster.map, xy=TRUE)) 
 
-  
+ruClimate_join <- left_join(iland.ru.id.df, cluster.map.df, by = c("x", "y"))
+ruClimate_join$cell <- paste0("climate_", ruClimate_join$cell)
+
+ruClimate_join$xy <- paste(ruClimate_join$x, ruClimate_join$y, sep="")
+env <-  merge(x=ruClimate_join, y=ds, by="xy", all=TRUE)
+
+env <- env %>% select(-c(x.x, y.x))
+env <- env %>% rename(r_unit = layer, x = x.y, y = y.y)
+
+write.csv(env, paste0("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/environment_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE) 
