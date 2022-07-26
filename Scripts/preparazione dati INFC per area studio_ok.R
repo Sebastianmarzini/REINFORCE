@@ -548,3 +548,5 @@ env$model.climate.tableName <- sub("_", "", env$model.climate.tableName)
 write.csv(env, paste0("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/environment_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE) 
 
 
+
+
