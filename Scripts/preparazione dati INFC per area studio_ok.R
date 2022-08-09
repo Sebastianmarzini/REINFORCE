@@ -486,6 +486,42 @@ write.csv(infcv, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time
 shp <- st_read("C:/Users/seba_/One Drive Eurac/OneDrive - Scientific Network South Tyrol/Shared/Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS/ProjectArea.shp")
 ds <- read.csv("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/infcVenosta_2022-07-15_16.41.csv")
 
+## Sistemazione dei dati di tessitura del suolo
+
+ds$sand <- round(ds$sand, digits = 0)
+ds$silt <- round(ds$silt, digits = 0)
+ds$clay <- round(ds$clay, digits = 0)
+
+ds$rowSums <- rowSums(ds[,c("sand", "silt", "clay")])
+
+st <- read.csv("Dati aree studio/Venosta/soilTypes_1.0.csv")
+st$sand <- round(st$sand, digits = 0)
+st$silt <- round(st$silt, digits = 0)
+st$clay <- round(st$clay, digits = 0)
+st$rowSums <- rowSums(st[,c("sand", "silt", "clay")])
+
+for(i in 1:nrow(st)){
+  if(st$rowSums[i] == 99){
+    max <- max(c(st$clay[i], st$silt[i], st$sand[i]))
+    if(max == st$clay[i]){
+      st$clay[i] <- st$clay[i] + 1
+    }
+    if(max == st$sand[i]){
+      st$sand[i] <- st$sand[i] + 1
+    }
+    if(max == st$silt[i]){
+      st$silt[i] <- st$silt[i] + 1
+    }
+  }
+}
+
+st <- st %>% rename(Bodenlands = BODENLANDS)
+
+st$Bodenlands[1] %in% ds$Bodenlands[1]
+
+df <- merge(ds, st, by = "Bodenlands")
+df <- df %>% select(-c(sand.x, silt.x, clay.x, rowSums.x, rowSums.y)) %>% 
+  rename(sand = sand.y, clay = clay.y, silt = silt.y)
 
 # 4 Plot dei dati --------
 

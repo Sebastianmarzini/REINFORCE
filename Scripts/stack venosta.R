@@ -13,7 +13,7 @@ library(RSQLite)
 
 # 1 Creation of the stack with the different rasters ----
 
-wd <- setwd("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS")
+#wd <- setwd("C:/Users/semarzini/Scientific Network South Tyrol/Mina Marco - Sebastian_Marco_REINFORCE/VAL_VENOSTA/GIS")
 
 ilandru <- raster("iland.ru.id.tif")
 dem <- raster("100m_DEM_20222403_1549.tif")
