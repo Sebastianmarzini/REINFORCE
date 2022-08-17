@@ -488,6 +488,8 @@ ds <- read.csv("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Seb
 
 ## Sistemazione dei dati di tessitura del suolo
 
+## OPZIONE 1: calcolo la somma dei valori di texture. Se inferiore a 100 aggiungo le unità mancanti alla classe con valore più alto. 
+## Dopodichè faccio il merge tra la tabella con i valori di texture e la colonna relativa ai bodenlands nel dataframe delle RU.
 ds$sand <- round(ds$sand, digits = 0)
 ds$silt <- round(ds$silt, digits = 0)
 ds$clay <- round(ds$clay, digits = 0)
@@ -523,6 +525,84 @@ df <- merge(ds, st, by = "Bodenlands")
 df <- df %>% select(-c(sand.x, silt.x, clay.x, rowSums.x, rowSums.y)) %>% 
   rename(sand = sand.y, clay = clay.y, silt = silt.y)
 
+## OPZIONE 2: ad ogni tipo forestale assegno i valori di texture relativi alla classe della bodenkarten alla quale appartengono
+ftTexture <- as.data.frame(rbind(Zi1 <- c("Zi1", 18, 39, 43), 
+               Fs2 <- c("Fs2", 12, 39, 49),
+               Fs10 <- c("Fs10", 18, 39, 43),
+               Zi4 <- c("Zi4", 18, 39, 43),
+               Fs3 <- c("Fs3",12, 39, 49),
+               Fs1 <- c("Fs1",12, 39, 49),
+               Fs4 <- c("Fs4",12, 39, 49),
+               Zi3 <- c("Zi3",6, 38, 56),
+               Fs6 <- c("Fs6",24, 40, 36),
+               Fs8 <- c("Fs8",24, 40, 36),
+               Fs7 <- c("Fs7",24, 40, 36),
+               La6 <- c("La6",18, 39, 43),
+               Fs9 <- c("Fs9",40, 29, 31),
+               Fs15 <- c("Fs15",12, 39, 49),
+               Fi3 <- c("Fi3",12, 39, 49),
+               Fs5 <- c("Fs5",40, 39, 21),
+               Zi2 <- c("Zi2",24, 40, 36),
+               FT5 <- c("FT5",18, 39, 43),
+               FT19 <- c("FT19",40, 39, 21),
+               FT15 <- c("FT15",40, 39, 21),
+               Ki1 <- c("Ki1",24, 40, 36),
+               Fi4 <- c("Fi4",12, 39, 49),
+               FT6 <- c("FT6",40, 39, 21),
+               Zi6 <- c("Zi6",40, 39, 21),
+               FT11 <- c("FT11",12, 39, 49),
+               FT12 <- c("FT12",12, 39, 49),
+               Fi7 <- c("Zi4",24, 40, 36),
+               FT1 <- c("FT1",12, 39, 49),
+               Zi7 <- c("Zi7",24, 40, 36),
+               Fi8 <- c("Fi8",12, 39, 49),
+               Ki8 <- c("Ki8",12, 39, 49),
+               La9 <- c("La9",6, 38, 56),
+               Fi1 <- c("Fi1",12, 39, 49),
+               FT14 <- c("FT14",12, 39, 49),
+               Fi15 <- c("Fi15",12, 39, 49),
+               Fi5 <- c("Fi5",24, 40, 36),
+               FT16 <- c("FT16",40, 39, 21),
+               La8 <- c("La8",12, 39, 49),
+               EK4 <- c("EK4",12, 39, 49),
+               EK3 <- c("EK3",6, 38, 56),
+               EK5 <- c("EK5",6, 38, 56),
+               La2 <- c("La2",24, 40, 36),
+               Fi6 <- c("Fi6",24, 40, 36),
+               Lh15 <- c("Lh15",12, 39, 49),
+               Ei9 <- c("Ei9",12, 39, 49),
+               Ge1 <- c("Ge1",18, 39, 43),
+               AS <- c("AS",4, 25, 71),
+               AE <- c("AE",4, 25, 71),
+               AT <- c("AT",4, 25, 71),
+               Lat1 <- c("Lat1",12, 39, 49),
+               Lat2 <- c("Lat2",12, 39, 49),
+               Lat3 <- c("Lat3",12, 39, 49),
+               EK6 <- c("EK6",6, 38, 56),
+               La3 <- c("La3",12, 39, 49)))
+
+ftTexture <- ftTexture %>% rename(tipi_for = V1,
+                                   clay = V2,
+                                   silt = V3,
+                                   sand = V4) 
+
+for(j in 1:nrow(df)){
+  for(s in 1:nrow(ftTexture)){
+    if(df$tipi_for[j] != "nf" & df$tipi_for[j] == ftTexture$tipi_for[s]){
+      df$clay[j] <- ftTexture$clay[s]
+      df$sand[j] <- ftTexture$sand[s]
+      df$silt[j] <- ftTexture$silt[s]
+    }
+  }
+}
+
+write.csv(ftTexture, paste0("Dati aree studio/Venosta/texture_tipiFor", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+
+write.csv(df, paste0("Dati aree studio/Venosta/infcVenosta_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE)
+
+
+
 # 4 Plot dei dati --------
 
 # plot(shp$geometry)
@@ -557,7 +637,7 @@ ruClimate_join <- left_join(iland.ru.id.df, cluster.map.df, by = c("x", "y"))
 ruClimate_join$cell <- paste0("climate_", ruClimate_join$cell)
 
 ruClimate_join$xy <- paste(ruClimate_join$x, ruClimate_join$y, sep="")
-env <-  merge(x=ruClimate_join, y=ds, by="xy", all=TRUE)
+env <-  merge(x=ruClimate_join, y=df, by="xy", all=TRUE)
 
 env <- env %>% select(-c(x.x, y.x))
 env <- env %>% rename(r_unit = layer, x = x.y, y = y.y)
@@ -580,8 +660,10 @@ env <- env %>% select(-SOMC_nf) %>% rename(id = r_unit, model.climate.tableName 
 
 env$model.climate.tableName <- sub("_", "", env$model.climate.tableName)
 
+env1 <- env[!(env$model.site.soilDepth == 0), ]
 
-write.csv(env, paste0("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/environment_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE) 
+
+write.csv(env1, paste0("C:/Users/semarzini/OneDrive - Scientific Network South Tyrol/Sebastian/Rprojects/REINFORCE/Dati aree studio/Venosta/environment_", format(Sys.time(), "%Y-%m-%d_%H.%M"), ".csv"), row.names = FALSE) 
 
 
 
